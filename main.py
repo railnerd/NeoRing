@@ -85,8 +85,8 @@ def color_wheel(pos):
 # Example Effects
 # ==============================================================================
 
-def test_channels():
-    """Diagnostic check: cycle through Red, Green, Blue, and White channels."""
+def test_channels(hold_ms=250):
+    """Diagnostic check: quickly cycle through Red, Green, Blue, and White channels."""
     print("Channel Check: Red -> Green -> Blue -> White")
     channels = [
         ("Red",   (255,   0,   0,   0)),
@@ -97,12 +97,12 @@ def test_channels():
     for name, col in channels:
         print(f"  Showing {name} channel...")
         fill(col)
-        time.sleep(0.8)
+        time.sleep_ms(hold_ms)
     clear()
-    time.sleep(0.3)
+    time.sleep_ms(150)
 
 
-def color_wipe(color, wait_ms=40):
+def color_wipe(color, wait_ms=15):
     """Wipe a color across the ring one pixel at a time."""
     for i in range(NUM_PIXELS):
         set_pixel(i, color)
@@ -348,6 +348,364 @@ def explosion(count=1):
         time.sleep_ms(350)
 
 
+def welding_shop(duration_s=10, ambient_shop=True):
+    """
+    Simulates an electric arc welder operating inside a workshop:
+    1. Ambient Shop Light: Low overhead workshop illumination (soft warm/neutral white).
+    2. Striking the Arc: Tap/scratch ignition attempts with quick, sharp flash pops.
+    3. Continuous Weld Bead: Fierce, high-frequency electric arc flicker (cyan/blue-white),
+       with ambient reflections bouncing off the shop walls and flying molten sparks/spatter.
+    4. Slag & Puddle Glow: Hot molten seam remaining orange/red and slowly cooling
+       through cherry-red embers after the arc cuts out.
+    5. Natural Intermittent Work: Alternates between passes, tacks, and cooling intervals.
+    """
+    start_time = time.ticks_ms()
+    total_ms = int(duration_s * 1000)
+    ambient_color = (12, 10, 6, 20) if ambient_shop else (0, 0, 0, 0)
+    arc_brightness = min(1.0, GLOBAL_BRIGHTNESS * 1.6)
+
+    def draw_ambient():
+        for i in range(NUM_PIXELS):
+            set_pixel(i, ambient_color)
+        np.write()
+
+    draw_ambient()
+    time.sleep_ms(350)
+
+    weld_pos = random.randint(0, NUM_PIXELS - 1)
+
+    while time.ticks_diff(time.ticks_ms(), start_time) < total_ms:
+        # Phase 1: Striking the Arc / Tacking (quick strike & short pauses)
+        strikes = random.randint(2, 4)
+        for _ in range(strikes):
+            if time.ticks_diff(time.ticks_ms(), start_time) >= total_ms:
+                break
+            # Strike flash
+            draw_ambient()
+            set_pixel(weld_pos, (120, 190, 255, 255), brightness=arc_brightness)
+            if random.random() < 0.5:
+                # Slight adjacent bounce
+                set_pixel((weld_pos + 1) % NUM_PIXELS, (30, 60, 120, 80))
+            np.write()
+            time.sleep_ms(random.randint(15, 35))
+
+            # Pause between strikes
+            draw_ambient()
+            time.sleep_ms(random.randint(50, 140))
+
+        if time.ticks_diff(time.ticks_ms(), start_time) >= total_ms:
+            break
+
+        # Phase 2: Continuous Weld Bead (High-frequency arc jitter, wall reflections & spatter)
+        bead_duration_ms = random.randint(1400, 2800)
+        bead_start = time.ticks_ms()
+
+        while (time.ticks_diff(time.ticks_ms(), bead_start) < bead_duration_ms and
+               time.ticks_diff(time.ticks_ms(), start_time) < total_ms):
+
+            # Occasional micro-stutter / gap in arc transfer
+            if random.random() < 0.08:
+                draw_ambient()
+                # Brief molten pool glimpse
+                set_pixel(weld_pos, (255, 80, 0, 30))
+                np.write()
+                time.sleep_ms(random.randint(15, 30))
+                continue
+
+            # Arc intensity and color fluctuation
+            arc_intensity = random.randint(180, 255)
+            arc_col = (
+                random.randint(70, 140),
+                random.randint(150, 230),
+                255,
+                arc_intensity
+            )
+
+            # Shop wall reflections based on arc intensity
+            flash_refl = random.randint(15, 50)
+            for i in range(NUM_PIXELS):
+                d = min(abs(i - weld_pos), NUM_PIXELS - abs(i - weld_pos))
+                bounce = max(0, int(flash_refl / (1.0 + d * 0.45)))
+                refl_color = (
+                    min(255, ambient_color[0] + int(bounce * 0.3)),
+                    min(255, ambient_color[1] + int(bounce * 0.5)),
+                    min(255, ambient_color[2] + int(bounce * 0.8)),
+                    min(255, ambient_color[3] + bounce),
+                )
+                set_pixel(i, refl_color)
+
+            # Weld site: intense electric arc
+            set_pixel(weld_pos, arc_col, brightness=arc_brightness)
+
+            # Molten halo on neighboring pixel
+            side_pixel = (weld_pos + random.choice([-1, 1])) % NUM_PIXELS
+            set_pixel(side_pixel, (200, 120, 100, int(arc_intensity * 0.6)), brightness=arc_brightness)
+
+            # Flying sparks / spatter bouncing across the workshop
+            if random.random() < 0.28:
+                spk_idx = (weld_pos + random.randint(2, NUM_PIXELS - 2)) % NUM_PIXELS
+                spark_col = (255, random.randint(160, 220), random.randint(20, 60), random.randint(100, 220))
+                set_pixel(spk_idx, spark_col, brightness=arc_brightness)
+
+            np.write()
+            time.sleep_ms(random.randint(15, 35))
+
+            # Slow seam progression
+            if random.random() < 0.05:
+                weld_pos = (weld_pos + random.choice([-1, 1])) % NUM_PIXELS
+
+        # Phase 3: Arc Cut-Off & Molten Puddle / Slag Cooling
+        cooling_steps = random.randint(20, 28)
+        for step in range(cooling_steps):
+            if time.ticks_diff(time.ticks_ms(), start_time) >= total_ms:
+                break
+            heat = int(255 * (1.0 - (step / cooling_steps) ** 1.3))
+            draw_ambient()
+            if heat > 160:
+                puddle_col = (255, int(heat * 0.55), 0, int((heat - 160) * 0.7))
+            elif heat > 65:
+                puddle_col = (int(heat * 1.3), int(heat * 0.2), 0, 0)
+            elif heat > 15:
+                puddle_col = (int(heat * 0.8), 0, 0, 0)
+            else:
+                puddle_col = ambient_color
+            set_pixel(weld_pos, puddle_col)
+
+            # Faint edge warmth
+            if heat > 90:
+                side_p = (weld_pos + 1) % NUM_PIXELS
+                set_pixel(side_p, (int(heat * 0.45), int(heat * 0.08), 0, 0))
+
+            np.write()
+            time.sleep_ms(40)
+
+        # Phase 4: Welder pause / reposition before next pass
+        draw_ambient()
+        pause_ms = random.randint(400, 900)
+        time.sleep_ms(pause_ms)
+        weld_pos = (weld_pos + random.randint(2, 6)) % NUM_PIXELS
+
+    clear()
+
+
+def radioactive_lab(duration_s=10, ambient_lab=True):
+    """
+    Simulates a high-containment radioactive research laboratory:
+    1. Clinical Lab Ambient: Cold, sterile fluorescent background (cool-teal & white tint).
+    2. Isotope Core: Slowly breathing toxic neon-green / uranium-lime containment vessel.
+    3. Cherenkov Radiation: Periodic criticality surges in piercing electric cyan-blue.
+    4. Geiger Counter Scintillations: Random ionizing particle hits flashing brightly.
+    5. Containment Hazard Beacon: Rhythmic amber warning strobe on the perimeter.
+    """
+    start_time = time.ticks_ms()
+    total_ms = int(duration_s * 1000)
+
+    # Core containment pixels (bottom arc of the ring)
+    core_pixels = [6, 7, 8, 9, 10]
+    # Warning hazard strobes (top of the ring)
+    hazard_pixels = [0, 1]
+
+    # Precalculated sine-like breathing table (0.0 to 1.0)
+    pulse_lut = [
+        0.30, 0.35, 0.45, 0.60, 0.78, 0.92, 1.00, 0.95,
+        0.82, 0.65, 0.48, 0.36, 0.28, 0.25, 0.24, 0.26
+    ]
+    lut_len = len(pulse_lut)
+
+    step = 0
+    cherenkov_active = False
+    cherenkov_timer = time.ticks_ms()
+    cherenkov_start = 0
+    cherenkov_duration = 1400
+
+    while time.ticks_diff(time.ticks_ms(), start_time) < total_ms:
+        now = time.ticks_ms()
+
+        # Trigger a Cherenkov criticality surge every 3.5 - 5 seconds
+        if not cherenkov_active and time.ticks_diff(now, cherenkov_timer) > 3500:
+            cherenkov_active = True
+            cherenkov_start = now
+            cherenkov_duration = random.randint(1200, 1600)
+
+        # 1. Base sterile clinical lab background
+        lab_ambient = (0, 8, 12, 14) if ambient_lab else (0, 0, 0, 0)
+        for i in range(NUM_PIXELS):
+            set_pixel(i, lab_ambient)
+
+        # Pulse breathing factor for the isotope core
+        pulse = pulse_lut[step % lut_len]
+
+        # 2. Containment Core State
+        if cherenkov_active:
+            c_elapsed = time.ticks_diff(now, cherenkov_start)
+            if c_elapsed >= cherenkov_duration:
+                cherenkov_active = False
+                cherenkov_timer = now
+                c_factor = 0.0
+            else:
+                progress = c_elapsed / cherenkov_duration
+                c_factor = 1.0 - abs(progress - 0.5) * 2.0  # 0 -> 1 -> 0
+
+            # Cherenkov radiation surge: electric cyan-blue glow
+            c_blue = int(255 * c_factor)
+            c_cyan = int(190 * c_factor)
+            c_white = int(80 * c_factor)
+
+            for cp in core_pixels:
+                set_pixel(cp, (0, c_cyan, c_blue, c_white))
+
+            # Radiation wave rippling to neighboring containment sectors
+            for cp in [4, 5, 11, 12]:
+                spread = int(c_factor * 130)
+                set_pixel(cp, (0, int(spread * 0.7), spread, int(spread * 0.35)))
+        else:
+            # Normal radioactive isotope glow (toxic uranium / lime green)
+            r_val = int(25 * pulse)
+            g_val = int(140 + 115 * pulse)
+            b_val = int(10 * (1.0 - pulse))
+            w_val = int(20 * pulse)
+
+            for cp in core_pixels:
+                intensity = 1.0 if cp == 8 else (0.8 if cp in (7, 9) else 0.55)
+                col = (
+                    int(r_val * intensity),
+                    int(g_val * intensity),
+                    int(b_val * intensity),
+                    int(w_val * intensity)
+                )
+                set_pixel(cp, col)
+
+        # 3. Containment Hazard Warning Beacon (Amber pulse on top LEDs)
+        hazard_phase = (step // 4) % 4
+        if hazard_phase == 0:
+            for hp in hazard_pixels:
+                set_pixel(hp, (255, 90, 0, 0))
+        else:
+            for hp in hazard_pixels:
+                set_pixel(hp, (15, 5, 0, 0))
+
+        # 4. Geiger Counter Scintillations (Erratic ionizing particle hits)
+        scint_chance = 0.45 if cherenkov_active else 0.18
+        if random.random() < scint_chance:
+            spark_p = random.randint(0, NUM_PIXELS - 1)
+            if cherenkov_active:
+                spark_col = (100, 220, 255, 255)  # Ionized blue-white flash
+            else:
+                spark_col = (80, 255, 100, 220)   # Fluorescing green-white pop
+            set_pixel(spark_p, spark_col, brightness=min(1.0, GLOBAL_BRIGHTNESS * 1.5))
+
+        np.write()
+        time.sleep_ms(35)
+        step += 1
+
+    clear()
+
+
+def concert_hall(duration_s=12):
+    """
+    Simulates a dynamic concert hall / arena stage interior lighting show:
+    1. House Lights Dimming: Grand amber/warm-white chandelier lights dimming smoothly.
+    2. Theatrical Stage Wash: Saturated background stage washes with rhythmic musical beat pulses.
+    3. Moving Automated Beams: Dual counter-rotating moving head fixtures sweeping the auditorium.
+    4. Center Followspot: Crisp pure-white spotlight tracking the lead performer on stage.
+    5. Crowd Audience Blinders: Blinding 3200K tungsten amber-white flashes on musical drops.
+    6. Curtain Call / Encore: Warm house illumination returning for applause.
+    """
+    start_time = time.ticks_ms()
+    total_ms = int(duration_s * 1000)
+
+    # 1. House Lights Fade Down (Chandeliers dimming as performance starts)
+    house_color = (200, 100, 15, 120)
+    for step in range(20, -1, -1):
+        factor = step / 20.0
+        scaled_house = tuple(int(c * factor) for c in house_color)
+        fill(scaled_house)
+        time.sleep_ms(30)
+        if time.ticks_diff(time.ticks_ms(), start_time) >= total_ms:
+            clear()
+            return
+
+    # 2. Show Phase: Sweeping automated movers, followspots, beat washes & blinders
+    theatrical_palettes = [
+        # (Wash color, Beam 1 color, Beam 2 color)
+        ((15, 0, 40, 0),    (255, 0, 140, 20),   (0, 200, 255, 40)),    # Violet wash + Magenta & Cyan beams
+        ((30, 10, 0, 5),    (255, 180, 0, 50),   (0, 120, 255, 80)),    # Warm wash + Gold & Azure beams
+        ((0, 20, 30, 0),    (0, 255, 160, 20),   (255, 0, 80, 20)),     # Teal wash + Emerald & Rose beams
+    ]
+
+    palette_idx = 0
+    beam1_pos = 0.0
+    beam2_pos = 8.0
+    followspot_pos = 4.0
+    followspot_dir = 0.15
+
+    last_beat = time.ticks_ms()
+    beat_interval_ms = 450  # ~133 BPM concert tempo
+
+    while time.ticks_diff(time.ticks_ms(), start_time) < (total_ms - 1000):
+        now = time.ticks_ms()
+
+        # Check musical beat pulse
+        is_beat = False
+        if time.ticks_diff(now, last_beat) >= beat_interval_ms:
+            last_beat = now
+            is_beat = True
+            # Transition lighting palette on musical phrases
+            if random.random() < 0.2:
+                palette_idx = (palette_idx + 1) % len(theatrical_palettes)
+
+        wash_col, b1_col, b2_col = theatrical_palettes[palette_idx]
+
+        # Crowd blinder flash on major musical accent
+        if is_beat and random.random() < 0.15:
+            # Full arena blinder flash (Tungsten Warm White + Amber)
+            fill((255, 200, 80, 255), brightness=min(1.0, GLOBAL_BRIGHTNESS * 1.5))
+            time.sleep_ms(45)
+            continue
+
+        # Render stage background wash with musical pulse boost
+        wash_boost = 1.8 if is_beat else 1.0
+        active_wash = tuple(min(255, int(c * wash_boost)) for c in wash_col)
+        for i in range(NUM_PIXELS):
+            set_pixel(i, active_wash)
+
+        # Update moving head beam positions
+        beam1_pos = (beam1_pos + 0.35) % NUM_PIXELS
+        beam2_pos = (beam2_pos - 0.40) % NUM_PIXELS
+
+        # Followspot gently tracking across the performer stage
+        followspot_pos += followspot_dir
+        if followspot_pos > 11.0 or followspot_pos < 3.0:
+            followspot_dir = -followspot_dir
+
+        # Draw Beam 1 (Moving automated profile fixture)
+        b1_idx = int(beam1_pos)
+        set_pixel(b1_idx, b1_col)
+        set_pixel((b1_idx + 1) % NUM_PIXELS, tuple(int(c * 0.4) for c in b1_col))
+
+        # Draw Beam 2 (Counter-rotating automated beam fixture)
+        b2_idx = int(beam2_pos)
+        set_pixel(b2_idx, b2_col)
+        set_pixel((b2_idx - 1) % NUM_PIXELS, tuple(int(c * 0.4) for c in b2_col))
+
+        # Draw Center Followspot (Crisp pure-white beam)
+        f_idx = int(followspot_pos)
+        set_pixel(f_idx, (0, 0, 0, 255), brightness=min(1.0, GLOBAL_BRIGHTNESS * 1.4))
+
+        np.write()
+        time.sleep_ms(30)
+
+    # 3. Curtain Call / House Lights return for applause
+    for step in range(0, 16):
+        factor = step / 15.0
+        scaled_house = tuple(int(c * factor) for c in house_color)
+        fill(scaled_house)
+        time.sleep_ms(35)
+
+    time.sleep_ms(300)
+    clear()
+
+
 # ==============================================================================
 # Main Demonstration Loop
 # ==============================================================================
@@ -367,14 +725,14 @@ def main():
         while True:
             print(f"\n--- Demo Cycle {loop_count} ---")
 
-            # 1. Color Wipes (Red, Green, Blue, Pure White)
-            print("1. Color Wipe (RGB + White channel)")
-            color_wipe((255, 0, 0, 0), wait_ms=30)
-            color_wipe((0, 255, 0, 0), wait_ms=30)
-            color_wipe((0, 0, 255, 0), wait_ms=30)
-            color_wipe((0, 0, 0, 255), wait_ms=30)  # Pure white LED
-            color_wipe((0, 0, 0, 0), wait_ms=20)    # Clear wipe
-            time.sleep(0.3)
+            # 1. Color Wipes (Red, Green, Blue, Pure White) - Sped up
+            print("1. Fast Color Wipe (RGB + White channel)")
+            color_wipe((255, 0, 0, 0), wait_ms=12)
+            color_wipe((0, 255, 0, 0), wait_ms=12)
+            color_wipe((0, 0, 255, 0), wait_ms=12)
+            color_wipe((0, 0, 0, 255), wait_ms=12)  # Pure white LED
+            color_wipe((0, 0, 0, 0), wait_ms=8)     # Clear wipe
+            time.sleep(0.15)
 
             # 2. Smooth Rainbow Cycle (Sped up)
             print("2. Fast Rainbow Cycle")
@@ -415,7 +773,25 @@ def main():
             print("9. Warm Twinkle Sparkle")
             sparkle((255, 120, 20, 150), sparkles=30, wait_ms=40)
             clear()
-            time.sleep(0.5)
+            time.sleep(1.8)
+
+            # 10. Welding Inside a Shop (Arc Strikes, Wall Bounce & Cooling Puddle)
+            print("10. Welding Inside a Shop")
+            welding_shop(duration_s=10, ambient_shop=True)
+            clear()
+            time.sleep(1.8)
+
+            # 11. Radioactive Lab Interior (Isotope Core, Cherenkov Surges & Geiger Clicks)
+            print("11. Radioactive Lab Interior")
+            radioactive_lab(duration_s=10, ambient_lab=True)
+            clear()
+            time.sleep(1.8)
+
+            # 12. Concert Hall Lighting (House Dim, Moving Beams, Followspot & Blinders)
+            print("12. Concert Hall Stage Lighting")
+            concert_hall(duration_s=12)
+            clear()
+            time.sleep(1.8)
 
             loop_count += 1
 

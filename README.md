@@ -38,7 +38,7 @@ Unlike standard RGB NeoPixels (which use 3 bytes per pixel), RGBW NeoPixels feat
 
 ## 3. Included Effects
 
-The test program in [`main.py`](file:///Users/dave/Documents/NeoRing/main.py) cycles through the following visual routines:
+The test program in [`main.py`](main.py) cycles through the following visual routines:
 
 1. **`test_channels()`**: Sequential test of individual channels (Red &rarr; Green &rarr; Blue &rarr; White) to verify wiring and color order.
 2. **`color_wipe()`**: Progressive single-pixel wipe around the ring in multiple colors.
@@ -50,6 +50,25 @@ The test program in [`main.py`](file:///Users/dave/Documents/NeoRing/main.py) cy
 8. **`fire()`**: Campfire / flame effect that slowly kindles from faint embers, spreads thermally across neighboring LEDs, grows into a roaring fire with white-hot flare-ups, and smoothly dies down (~8s).
 9. **`theater_chase()`**: Marquee crawling dot pattern.
 10. **`sparkle()`**: Random twinkle across the ring.
+11. **`welding_shop()`**: Realistic arc welding inside a workshop:
+    - **Ambient Workshop Light:** Soft overhead lighting keeping the shop dimly illuminated.
+    - **Arc Ignition / Tacks:** Quick scratch/tap strikes with short inter-strike pauses.
+    - **Sustained Weld Bead:** Fierce electric arc flicker (cyan/blue-white using the dedicated white LED element) with dynamic wall bounce reflections and flying spatter sparks.
+    - **Thermal Slag & Puddle Glow:** Molten puddle remaining orange/white and cooling through cherry red to dull red after the arc cuts out.
+    - **Natural Work Rhythm:** Intermittent passes, tack welds, and cooling intervals (~10s).
+12. **`radioactive_lab()`**: Atmospheric radioactive research facility interior:
+    - **Clinical Cleanroom Ambient:** Cold, sterile fluorescent background illumination (cool-teal / white tint).
+    - **Isotope Containment Vessel:** Slowly breathing toxic uranium-green / neon-lime core glow.
+    - **Cherenkov Radiation Surges:** Periodic criticality surges flashing deep electric cyan-blue across the containment pool.
+    - **Geiger Scintillations:** Sharp, erratic particle detection micro-flashes simulating ionizing alpha/gamma strikes.
+    - **Containment Hazard Beacon:** Rhythmic amber caution strobe warning of elevated radiation levels (~10s).
+13. **`concert_hall()`**: Dynamic concert hall / arena stage interior lighting show:
+    - **House Lights Dimming:** Grand amber/warm-white chandelier lights dimming smoothly as the performance begins.
+    - **Theatrical Stage Washes:** Saturated colored background washes with rhythmic musical beat pulses (~133 BPM).
+    - **Moving Automated Beams:** Dual counter-rotating moving head fixtures sweeping across the auditorium.
+    - **Center Followspot:** Crisp pure-white spotlight tracking the lead performer on stage.
+    - **Crowd Audience Blinders:** Blinding 3200K tungsten amber-white flashes on dramatic musical drop accents.
+    - **Curtain Call / Encore:** Warm chandelier illumination returning for audience applause (~12s).
 
 ---
 
@@ -58,7 +77,7 @@ The test program in [`main.py`](file:///Users/dave/Documents/NeoRing/main.py) cy
 ### Using Thonny IDE (Recommended)
 1. Connect your MicroPython board via USB.
 2. Open **Thonny IDE** and select the MicroPython interpreter (bottom right corner).
-3. Open [`main.py`](file:///Users/dave/Documents/NeoRing/main.py).
+3. Open [`main.py`](main.py).
 4. Adjust `PIN_NUM` at the top of the file if you are using a different GPIO pin.
 5. Click the green **Run current script (F5)** button.
 6. Press `Ctrl + C` in the Shell / REPL to stop the program and clear the LEDs.
